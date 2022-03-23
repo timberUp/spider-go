@@ -10,7 +10,7 @@ import (
 )
 
 func TestDownloadAndExtract(t *testing.T) {
-	outDir := "../output"
+	outDir := "."
 	url := "https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html"
 	resp, err := http.Get(url)
 	assert.NoError(t, err)

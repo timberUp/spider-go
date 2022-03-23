@@ -35,7 +35,7 @@ type worker struct {
 }
 
 func (w *worker) start() {
-	logrus.Info("[fetcher-%03d] started")
+	logrus.Infof("[fetcher-%03d] started", w.id)
 	defer w.wg.Done()
 
 	for {

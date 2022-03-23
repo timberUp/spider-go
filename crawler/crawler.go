@@ -37,6 +37,7 @@ type Crawler struct {
 	mu            sync.RWMutex
 }
 
+// NewCrawler new a Crawler instance
 func NewCrawler(cfg config.Config) (*Crawler, error) {
 	if err := config.CheckConfig(&cfg); err != nil {
 		return nil, err
@@ -87,6 +88,8 @@ func NewCrawler(cfg config.Config) (*Crawler, error) {
 	}, nil
 }
 
+// initTaskQueue enqueues seed urls into taskQueue
+// assuming all seed urls are valid and not duplicated
 func (c *Crawler) initTaskQueue() {
 	c.wg.Add(1)
 	defer c.wg.Done()
@@ -111,6 +114,7 @@ func (c *Crawler) initTaskQueue() {
 	return
 }
 
+// Start launch a Crawler
 func (c *Crawler) Start() error {
 	logrus.Infof("crawler starting...")
 
@@ -146,6 +150,7 @@ func (c *Crawler) Stop() {
 	logrus.Info("all workers quit, crawler gracefully shut down")
 }
 
+// Loop listens for termination signal to shut down Crawler
 func (c *Crawler) Loop() {
 	logrus.Info("loop for termination signal")
 

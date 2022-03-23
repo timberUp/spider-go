@@ -12,6 +12,7 @@ const (
 	HTTPSPrefix = "https://"
 )
 
+// Download reformat urls and downloaded as html file
 func Download(url, outDir string, body io.ReadCloser) error {
 	fileName := filepath.Join(outDir, format(url))
 	if _, err := os.Stat(fileName); os.IsNotExist(err) {

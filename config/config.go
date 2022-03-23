@@ -30,6 +30,7 @@ type Spider struct {
 	ThreadCount     int    `gcfg:"threadCount"`
 }
 
+// CheckConfig validates config and set default value
 func CheckConfig(cfg *Config) error {
 	if len(strings.TrimSpace(cfg.UrlListFile)) == 0 {
 		return fmt.Errorf("empty path for seed url")

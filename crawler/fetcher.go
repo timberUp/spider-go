@@ -16,7 +16,7 @@ import (
 type Fetcher interface {
 	start()
 	fetch(url Url) ([]Url, error)
-	send(urls []Url)
+	enqueue(urls []Url)
 }
 
 type worker struct {
@@ -46,7 +46,7 @@ func (w *worker) start() {
 			if err != nil {
 				logrus.Warnf("[fetcher-%03d] failed to fetch [%s], err: %v", w.id, url.link, err)
 			} else {
-				go w.send(urls)
+				go w.enqueue(urls)
 			}
 		case <-w.quit:
 			logrus.Infof("[fetcher-%03d] downloaded %d urls, quit", w.id, w.count)
@@ -65,16 +65,16 @@ func (w *worker) fetch(url Url) ([]Url, error) {
 	}
 	resp, err := w.client.Get(url.link)
 	if err != nil {
-		return nil, fmt.Errorf("get url [%s] response failed, err: %v", url.link, err)
+		return nil, fmt.Errorf("[fetcher-%03d] get url [%s] response failed, err: %v", w.id, url.link, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("got error when getting content from [%s], httpStatus: %v", url.link, resp.StatusCode)
+		return nil, fmt.Errorf("[fetcher-%03d] got error when getting content from [%s], httpStatus: %v", w.id, url.link, resp.StatusCode)
 	}
 
 	if w.urlPattern.MatchString(url.link) {
 		if err = parser.Download(url.link, w.outputDir, resp.Body); err != nil {
-			logrus.Errorf("failed to download [%s], err: %v", url.link, err)
+			logrus.Errorf("[fetcher-%03d] failed to download [%s], err: %v", w.id, url.link, err)
 		} else {
 			logrus.Infof("[%s] downloaded", url.link)
 			atomic.AddInt32(&w.count, 1)
@@ -100,13 +100,13 @@ func (w *worker) fetch(url Url) ([]Url, error) {
 	return links, nil
 }
 
-func (w *worker) send(urls []Url) {
+func (w *worker) enqueue(urls []Url) {
 	w.wg.Add(1)
 	defer w.wg.Done()
 	for _, u := range urls {
 		select {
 		case <-w.quit:
-			logrus.Warnf("[fetcher-%03d] quit unexpectedly", w.id)
+			logrus.Warnf("[fetcher-%03d] quit unexpectedly while sending urls", w.id)
 			return
 		default:
 			w.mu.Lock()

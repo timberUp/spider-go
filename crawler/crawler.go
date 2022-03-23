@@ -5,8 +5,11 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"os/signal"
 	"regexp"
+	"runtime"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -84,6 +87,86 @@ func NewCrawler(cfg config.Config) (*Crawler, error) {
 	}, nil
 }
 
-func (c *Crawler) Start() error  {
+func (c *Crawler) initTaskQueue() {
+	c.wg.Add(1)
+	defer c.wg.Done()
+	for _, u := range c.Urls {
+		select {
+		case <-c.quit:
+			logrus.Warnf("crawler quit unexpectedly")
+			return
+		default:
+			c.mu.Lock()
+			if _, ok := c.urlMap[u]; !ok {
+				c.urlMap[u] = true
+				c.taskQueue <- Url{
+					link:  u,
+					depth: c.MaxDepth,
+				}
+			}
+			c.mu.Unlock()
+			logrus.Infof("[%s] sent to taskQueue", u)
+		}
+	}
+	return
+}
+
+func (c *Crawler) Start() error {
+	logrus.Infof("crawler starting...")
+
+	go c.initTaskQueue()
+
+	c.wg.Add(c.ThreadCount)
+	for i := 0; i < c.ThreadCount; i++ {
+		w := worker{
+			id:            i,
+			client:        c.Client,
+			wg:            &c.wg,
+			mu:            &c.mu,
+			urlPattern:    c.TargetPattern,
+			urlMap:        c.urlMap,
+			taskQueue:     c.taskQueue,
+			quit:          c.quit,
+			crawlInterval: time.Duration(c.Interval) * time.Second,
+			lastFetch:     time.Now(),
+			count:         0,
+			outputDir:     c.OutputDir,
+		}
+		go w.start()
+	}
+
 	return nil
+}
+
+func (c *Crawler) Stop() {
+	logrus.Info("stopping crawler...")
+	close(c.quit)
+	c.wg.Wait()
+	close(c.taskQueue) // taskQueue should close after all workers quit, or panic
+	logrus.Info("all workers quit, crawler gracefully shut down")
+}
+
+func (c *Crawler) Loop() {
+	logrus.Info("loop for termination signal")
+
+	buf := make([]byte, 1<<20)
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
+
+	for {
+		select {
+		case s := <- sig:
+			switch s {
+			case syscall.SIGINT, syscall.SIGTERM:
+				logrus.Info("==== received SIGINT/SIGTERM, exiting ===\n***")
+			case syscall.SIGQUIT:
+				stackLen := runtime.Stack(buf, true)
+				logrus.Infof("==== received SIGQUIT ===\n*** goroutine dump...\n%s\n***end", buf[:stackLen])
+			}
+			c.Stop()
+			return
+		default:
+			// TODO: quit when all tasks consumed?
+		}
+	}
 }

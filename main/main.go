@@ -72,6 +72,7 @@ func main() {
 		os.Exit(-1)
 	}
 
+	c.Loop()
 }
 
 func initLogger(path, fileName string, level logrus.Level, hasStdOut bool) error {

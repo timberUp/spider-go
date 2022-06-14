@@ -76,7 +76,15 @@ func main() {
 }
 
 func initLogger(path, fileName string, level logrus.Level, hasStdOut bool) error {
-	f, err := os.OpenFile(filepath.Join(path, fileName), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	var err error
+	var f *os.File
+	if _, err = os.Stat(path); os.IsNotExist(err) {
+		err = os.Mkdir(path, 0744)
+		if err != nil {
+			return err
+		}
+	}
+	f, err = os.OpenFile(filepath.Join(path, fileName), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0744)
 	if err != nil {
 		return err
 	}
@@ -87,7 +95,7 @@ func initLogger(path, fileName string, level logrus.Level, hasStdOut bool) error
 		mw := io.MultiWriter(os.Stdout, f)
 		logrus.SetOutput(mw)
 	}
-	return nil
+	return err
 }
 
 func usage() {

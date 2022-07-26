@@ -8,11 +8,13 @@ Concurrent web crawler implemented by Golang.
 
 ![spider](spider.png)
 
-
 ## Usage
 ```shell script
 > go build -o spider              # Compile
 > ./spider -h                     # /help
 > ./spider -c ../conf/spider.conf # run your spider
 ```
-  
+## TODO
+
+- Make it `distributed`
+- Auto terminated

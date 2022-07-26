@@ -8,7 +8,7 @@ import (
 // Controller is the brain for all Fetchers
 type Controller struct {
 	fetchers []crawler.Crawler
-	quit     chan struct{}
+	quit     <-chan struct{}
 	wg       sync.WaitGroup
 	mu       sync.RWMutex
 }

@@ -13,8 +13,6 @@ type Controller struct {
 	mu       sync.RWMutex
 }
 
-func NewController() {
-}
+func NewController() {}
 
-type manager interface {
-}
+type manager interface {}

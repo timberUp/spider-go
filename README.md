@@ -18,3 +18,4 @@ Concurrent web crawler implemented by Golang.
 
 - Make it `distributed`
 - Auto terminated
+- Implementation of `control`
